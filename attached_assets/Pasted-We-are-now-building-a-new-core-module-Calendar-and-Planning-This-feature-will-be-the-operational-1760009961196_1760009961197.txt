@@ -1,0 +1,26 @@
+We are now building a new core module: "Calendar and Planning". This feature will be the operational hub for scheduling content and tasks.
+
+**Task 1: Backend Schema and API**
+
+1.  Create a new database schema/table named `calendarSlots`. It should include fields like:
+    * `id`, `artistId`
+    * `title` (text, e.g., "Teaser novo single")
+    * `contentType` (text, e.g., 'Reels', 'TikTok', 'YouTube Video', 'Foto Carrossel')
+    * `status` (text, e.g., 'Planejado', 'Aprovado', 'Publicado', 'Cancelado')
+    * `scheduledAt` (timestamp, the exact date and time for the post)
+    * `brief` (text, a short description of the content)
+2.  Implement the full CRUD API endpoints for this schema at `/api/calendar-slots`. This must include GET (with date range filters), POST, PATCH, and DELETE functionality.
+
+**Task 2: Frontend Calendar Page**
+
+1.  Create a new page component at `client/src/pages/CalendarPage.tsx`. Add a link to it in the main sidebar.
+2.  On this page, implement a visual calendar interface. You can use a library like `react-big-calendar` or build a custom grid. It should have views for "Mês" (Month) and "Semana" (Week).
+3.  The calendar should fetch all events for the visible date range from `GET /api/calendar-slots` and display them in the correct date/time slots.
+4.  Each event on the calendar should be color-coded based on its `status`.
+
+**Task 3: Add/Edit Event Functionality**
+
+1.  When a user clicks on an empty time slot in the calendar, it should open a modal ("Novo Agendamento") with a form to create a new `calendarSlot`.
+2.  The form must include fields for `title`, `contentType` (dropdown), `status` (dropdown), `scheduledAt` (a date and time picker), and a `brief` textarea.
+3.  Submitting the form should call `POST /api/calendar-slots` and the new event should appear on the calendar automatically.
+4.  Clicking an existing event on the calendar should open the same modal, but pre-filled with the event's data, allowing the user to edit (calling `PATCH`) or delete (calling `DELETE`) the event.

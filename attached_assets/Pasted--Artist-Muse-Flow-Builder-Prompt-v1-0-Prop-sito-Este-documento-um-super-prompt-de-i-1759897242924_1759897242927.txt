@@ -1,0 +1,411 @@
+# Artist Muse Flow — Builder Prompt (v1.0)
+
+> **Propósito**: Este documento é um super‑prompt de implementação para um builder (dev team/no‑code/low‑code ou full‑stack) construir o **Artist Muse Flow** como uma aplicação web SaaS escalável, com Reality Engine, calendário/planejamento, geração/curadoria IA, automação social, analytics e marketplace.
+
+---
+
+## 1) Objetivo Geral & Público‑Alvo
+
+**Objetivo:**
+
+1. Manter **narrativa consistente** de cada artista via Reality Engine (locais, personagens, posses, conceitos, timeline e relações).
+2. **Planejar, produzir e publicar** conteúdo multi‑plataforma com automação.
+3. **Aproveitar IA** para geração criativa, curadoria e insights.
+4. **Centralizar gestão digital** (assets, calendário, approvals, entregas).
+5. **Monetizar** com marketplace/licenciamento.
+
+**Público‑alvo:** artistas independentes/gerenciados, agências de talentos e produtores/marketers.
+
+**Não‑objetivos (v1):** edição de vídeo nativa; DMs sociais; engine de anúncios.
+
+---
+
+## 2) Gestão de Artistas & Usuários (RBAC)
+
+**Usuários**: `admin`, `manager`, `brand`.
+
+**Autenticação**: JWT (access/refresh). **Autorização**: RBAC por rota e por escopo (artistId). Sessões com expiração/refresh.
+
+**User model:** `{ id, name, email, role, isActive, lastLogin, passwordHash, createdAt }`.
+
+**Artistas**: `{ id, displayName, isAi, city, country, status, bio, fichaUrl, canonJson, createdAt, updatedAt }`.
+
+**Regras:**
+
+* `admin`: CRUD global.
+* `manager`: CRUD nos artistas aos quais está vinculado.
+* `brand`: leitura + workflows específicos (approvals, marketplace, relatórios).
+
+---
+
+## 3) Módulos Principais & Funcionalidades
+
+### 3.1 Reality Engine (núcleo)
+
+**Entidades (CRUD completo):**
+
+* **realityLocations** `{ id, artistId, name, type[urbano|natural|virtual|fantástico|histórico|outro], description, images[], firstAppearance, lastAppearance }`
+* **realityCharacters** `{ id, artistId, name, relationship[colaborador|amigo|rival|mentor|familiar|fictício|outro], description, firstAppearance, frequency[alta|média|baixa] }`
+* **realityPossessions** `{ id, artistId, name, type[instrumento|joia|artefato|veículo|vestuário|digital|conceito|outro], description, acquired, status[atual|perdido|...] }`
+* **realityTimeline** `{ id, artistId, eventDate, title, description, type[nascimento|conquista|...], impact, relatedLocations[], relatedCharacters[], relatedPossessions[], relatedConcepts[] }`
+* **realityConcepts** `{ id, artistId, name, description, keywords[], relatedConcepts[] }`
+* **realityRelationships** `{ id, artistId, sourceEntityId, sourceEntityType, targetEntityId, targetEntityType, type[amizade|rivalidade|...], description, strength(1-10) }`
+* **realityMedia** `{ id, entityId, entityType, url, mediaType[imagem|vídeo|áudio], description, tags[] }`
+
+**Endpoints IA:**
+
+* `GET /api/reality/consistency/:artistId` → retorna lista de inconsistências (regra, entidade, detalhe, severidade, quickFix links).
+* `POST /api/reality/generate-content/:artistId { context, prompt }` → retorna trechos (cenas, descrições, diálogos).
+* `POST /api/reality/suggest-elements/:artistId { focus }` → sugere novos personagens/locais/posses/conceitos com justificativa e pontos de conexão.
+
+**Algoritmo base Consistency Check (pseudo):**
+
+1. Carregar grafo (nodes: entidades; edges: relationships/refs da timeline).
+2. Regras temporais (appearance ≤ eventDate), domínio (status/uso coerente), cardinalidade (rel. duplicadas), referências órfãs.
+3. Score de severidade e **auto‑fix** sugerido (ex.: ajustar `firstAppearance` para a primeira ocorrência válida, ou bloquear publicação até correção manual).
+
+**Visualização de Grafo:** nodes por tipo (cores), edges por relation/type; filtros por período e spotlight por artista.
+
+---
+
+### 3.2 Calendário & Planejamento
+
+**calendarSlots** `{ id, artistId, date, slot[manha|tarde|noite], label, contentType, agent[social|funk], status[planned|approved|published], brief }`
+
+**timelineEvents** `{ id, artistId, date, type[release|tour|life_update|travel|brand], title, location, metaJson }`
+
+**projects** `{ id, artistId, title, outputMode[spotify_canvas|youtube|ambos|teaser], visionText, bpm, subgenre, status }`
+
+**scenes** `{ id, projectId, idx, goal, durationS, seed, status, previewUrl, finalUrl, notes }`
+
+**approvals** `{ id, projectId, sceneId, status[approved|revise|pending], comment }`
+
+**deliveries** `{ id, projectId, kind[youtube|vertical|canvas|teaser|thumb], url, metaJson }`
+
+**assets** `{ id, projectId, kind[audio|lyrics|face], url, metaJson }`
+
+**Regras UX:** drag‑and‑drop, duplicar slots, bulk actions, vínculos com Reality (ex.: slot linka location/personagem para consistência).
+
+---
+
+### 3.3 Geração & Curadoria (IA)
+
+**generatedSongs** `{ id, artistId, projectId, title, duration, bpm, mood, style, lyrics(jsonb), production(jsonb), tiktokClips(jsonb), viralPotential(jsonb), status }`
+
+**songAnalysis** `{ id, artistId, projectId, title, duration, bpm, hookTiming, structure(jsonb), analysisJson(jsonb) }`
+
+**viralPredictions** `{ id, songAnalysisId, viralScore, confidence, tiktokScore, instagramScore, spotifyScore, recommendations(jsonb), predictedReach(jsonb) }`
+
+**seasonalTemplates** `{ id, key, title, ruleJson, windowDays, capsJson, copyTemplatesJson, promptTemplatesJson }`
+
+**evergreenBank** `{ id, title, contentType, promptsJson, captionsJson }`
+
+**ECV DNA** `{ id, artistId, age, gender, nationality, faceJson, skinJson, hairJson, bodyJson, voiceJson, outfitJson, paletteJson, scenariosJson, cameraJson, textPolicyJson, personaJson, purposeJson, styleJson, faceDescription, bio, propsJson, personalityJson, boundariesJson }`
+
+**ecvImages** `{ id, artistId, prompt, negativePrompt, seed, url, status[generating|ready|approved|rejected|archived], notes }`
+
+**ecvCurations** `{ id, imageId, userId, action, comment }`
+
+**Padrões:** prompts versionados; seeds fixáveis; blacklist/negative prompts; auditoria de curadoria.
+
+---
+
+### 3.4 Automação & Integrações (Social)
+
+* **Agendamento**: criação de jobs por slot/status com backoff e retry.
+* **Publicação**: adaptadores (Instagram/TikTok/YouTube/Spotify). Guardar **webhook logs** e IDs remotos.
+* **Adaptação**: resize/crop, caps por plataforma, variações de copy, hashtags.
+* **Monitoramento**: coleta de engajamento/alcance e normalização por plataforma.
+
+---
+
+### 3.5 Analytics & Dashboard
+
+* **Visão do Artista**: KPIs, próximos eventos, status de projetos.
+* **Métricas**: nº artistas, projetos ativos, slots futuros, inconsistências.
+* **Grafo da Realidade**: filtro por tempo/tipo.
+* **Alertas**: inconsistências com deep‑link para correção.
+* **Relatórios**: growth/engajamento, CTR, saves, virality hints.
+
+---
+
+### 3.6 Marketplace & Licenciamento
+
+**marketplaceListings** `{ id, artistId, type[social_media|advertising|exclusive|custom], title, description, price, duration, usage, status[active|paused|closed|sold], views, offers, metaJson }`
+
+**Fluxos:** criação → revisão legal → publicação → propostas → acordo → entrega/licença.
+
+---
+
+## 4) Arquitetura & Componentes Técnicos
+
+**Stack:**
+
+* **Backend**: Node.js + Express + TypeScript.
+* **DB**: PostgreSQL + Drizzle ORM (migrations/typed queries).
+* **Validation**: Zod.
+* **Auth**: JWT (access/refresh), cookies httpOnly para refresh.
+* **Storage**: S3‑compatível (uploads assinado).
+* **Queues**: BullMQ/Redis para jobs (publicação, IA, webhooks).
+* **Frontend**: React + TS + Vite, Tailwind + shadcn/ui, Lucide, Recharts.
+* **Infra**: Docker, CI/CD, observabilidade (pino + OpenTelemetry), feature flags.
+
+**Pastas (monorepo sugestão):**
+
+```
+apps/
+  web/ (React)
+  api/ (Express)
+packages/
+  db/ (drizzle schemas + migrations)
+  ui/ (design system)
+  core/ (domínio: services, rules)
+  clients/ (SDKs integrações sociais)
+  types/ (tipos compartilhados)
+```
+
+**Padrões de API:** REST JSON; `X-Request-Id`; versionamento `/v1`; errors com `code/message/details`.
+
+**Endpoints base (amostra):**
+
+```
+POST   /v1/auth/login
+POST   /v1/auth/refresh
+POST   /v1/auth/logout
+
+GET    /v1/artists
+POST   /v1/artists
+GET    /v1/artists/:id
+PATCH  /v1/artists/:id
+DELETE /v1/artists/:id
+
+# Reality
+CRUD   /v1/reality/locations
+CRUD   /v1/reality/characters
+CRUD   /v1/reality/possessions
+CRUD   /v1/reality/timeline
+CRUD   /v1/reality/concepts
+CRUD   /v1/reality/relationships
+CRUD   /v1/reality/media
+GET    /v1/reality/consistency/:artistId
+POST   /v1/reality/generate-content/:artistId
+POST   /v1/reality/suggest-elements/:artistId
+
+# Calendário & Conteúdo
+CRUD   /v1/calendar/slots
+CRUD   /v1/timeline/events
+CRUD   /v1/projects
+CRUD   /v1/scenes
+CRUD   /v1/approvals
+CRUD   /v1/deliveries
+CRUD   /v1/assets
+
+# IA Música/Curadoria
+CRUD   /v1/generated-songs
+CRUD   /v1/song-analysis
+CRUD   /v1/viral-predictions
+CRUD   /v1/seasonal-templates
+CRUD   /v1/evergreen-bank
+CRUD   /v1/ecv/dna
+CRUD   /v1/ecv/images
+CRUD   /v1/ecv/curations
+
+# Social/Marketplace
+POST   /v1/social/schedule
+POST   /v1/social/publish
+GET    /v1/social/metrics/:artistId
+CRUD   /v1/marketplace/listings
+```
+
+**Esquemas Zod (exemplo):**
+
+```ts
+export const ArtistSchema = z.object({
+  displayName: z.string().min(2),
+  isAi: z.boolean().default(false),
+  city: z.string().optional(),
+  country: z.string().optional(),
+  status: z.enum(['active','paused','archived']).default('active'),
+  bio: z.string().max(2000).optional(),
+  fichaUrl: z.string().url().optional(),
+  canonJson: z.record(z.any()).default({}),
+});
+```
+
+**Drizzle (exemplo locations):**
+
+```ts
+export const realityLocations = pgTable('reality_locations', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  artistId: uuid('artist_id').notNull().references(() => artists.id),
+  name: varchar('name', { length: 200 }).notNull(),
+  type: varchar('type', { length: 20 }).notNull(),
+  description: text('description'),
+  images: jsonb('images').$type<string[]>(),
+  firstAppearance: date('first_appearance'),
+  lastAppearance: date('last_appearance'),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+```
+
+**Jobs (BullMQ):**
+
+* `content.generate` (IA)
+* `social.publish` (per‑plataforma)
+* `metrics.fetch` (polling/ingest)
+* `consistency.scan` (agendado)
+
+**Webhooks:** `/webhooks/:provider` (assinatura/verificação; dead‑letter queue; replays).
+
+---
+
+## 5) UI/UX (Requisitos de Produto)
+
+**Principais telas (web responsive):**
+
+1. **Dashboard** (KPI cards, agenda da semana, alertas de inconsistência, últimos assets).
+2. **Artistas** (list + create wizard + profile c/ tabs: Reality, Calendário, Projetos, ECV DNA, Marketplace, Analytics).
+3. **Reality Graph** (força/tempo, filtros, quick create).
+4. **Calendário** (semana/mês; slots drag‑n‑drop; rascunho→aprovado→publicado).
+5. **Projetos & Cenas** (status, previews, approvals; entrega com checklists).
+6. **ECV DNA** (form builder + previews; lock de face/outfit/scenes).
+7. **Curadoria** (kanban: generating→ready→approved/rejected).
+8. **Automação Social** (fila de publicação, histórico, replays).
+9. **Marketplace** (listings, ofertas, contratos/licença).
+10. **Settings** (API keys, webhooks, perfis, equipes, permissões).
+
+**Diretrizes UI:** Tailwind + shadcn; dark‑first; modais não bloqueantes; toasts/inline validation; empty states com CTAs.
+
+**Acessibilidade:** WCAG AA; foco visível; atalhos (ex.: `G`→Grafo, `C`→Calendário).
+
+---
+
+## 6) Segurança, Performance & Escala
+
+* **Segurança**: Helmet, CORS estrito, CSRF para rotas sensíveis, rate‑limit por IP/rota, JWT rotation, hashing Argon2, storage via URLs assinadas, validação server‑side (Zod), logs imutáveis, auditoria por entidade/ação.
+* **Perf**: índices compostos (artistId+date), caching (Redis) para dashboards, N+1 guard (db layer), carga IA off‑thread (queue).
+* **Escala**: stateless API (Horiz.), workers dedicados para jobs, sharding por artista (futuro), CDN para mídia.
+* **Privacidade**: escopos por artista, PII minimizada, retention policies.
+
+---
+
+## 7) Instruções para o Builder (Plano de Entrega)
+
+**Milestone 1 — Fundações (2 semanas)**
+
+* Monorepo, auth JWT, RBAC, artistas CRUD, migrations Drizzle, design system base.
+* Calendário (slots básico) e Projects CRUD.
+* S3 uploads assinados.
+* Observabilidade/logs.
+
+**Aceite:** criar artista, criar slot, criar projeto, upload de asset, login/refresh ok.
+
+**Milestone 2 — Reality Engine (2–3 semanas)**
+
+* Entidades Reality + grafo interativo.
+* Consistency Check (mínimo: regras temporais/ref órfã) + alertas.
+* Endpoints IA stub + UI de geração (sem provedor acoplado).
+
+**Aceite:** cadastrar locais/personagens/posses, ver grafo, rodar consistency e corrigir via deep‑link.
+
+**Milestone 3 — Produção & Curadoria (2 semanas)**
+
+* Scenes/Approvals/Deliveries + ECV DNA + ecvImages pipeline (status, seed, negative).
+* Kanban de curadoria.
+
+**Aceite:** gerar placeholder/preview, aprovar/rejeitar, travar DNA em prompt.
+
+**Milestone 4 — Automação Social & Métricas (2 semanas)**
+
+* Schedulers + adaptadores stub, logs/webhooks, coleta de métricas (mock).
+* Dashboard com KPIs reais do banco.
+
+**Aceite:** publicar mock, ver histórico, gráficos básicos.
+
+**Milestone 5 — Marketplace (1 semana)**
+
+* Listings CRUD, ofertas simples, workflow de licença.
+* Relatórios exportáveis (CSV/PDF) e filtros.
+
+**Aceite:** criar/anunciar listing; fechar venda mock; exportar relatório.
+
+**Testes & Qualidade**
+
+* Unit (Zod/serviços), integração (API), e2e (Playwright).
+* Seed scripts + cenários demo.
+* Checklists de QA por módulo (happy/sad paths).
+
+---
+
+## 8) Contratos de Dados (amostras)
+
+**CalendarSlot (API)**
+
+```json
+{
+  "id": "uuid",
+  "artistId": "uuid",
+  "date": "2025-10-15",
+  "slot": "manha",
+  "label": "Teaser novo single",
+  "contentType": "video_vertical",
+  "agent": "social",
+  "status": "planned",
+  "brief": "Gancho 3s + CTA pre-save"
+}
+```
+
+**Reality Consistency Report**
+
+```json
+{
+  "artistId": "uuid",
+  "summary": {"total": 5, "critical": 1, "major": 2, "minor": 2},
+  "items": [
+    {
+      "rule": "timeline.birth_before_first_appearance",
+      "entity": {"type": "realityCharacters", "id": "uuid", "name": "Zion"},
+      "detail": "Aparição em 2010 antes do nascimento em 2012",
+      "severity": "critical",
+      "quickFix": {"action": "setFirstAppearance", "value": "2012-08-01"}
+    }
+  ]
+}
+```
+
+---
+
+## 9) Integração com Agentes de IA (abstrações)
+
+**Providers** (strategy pattern): `CreativeAgent`, `StrategyAgent`, `GoogleAIService` (ou similar).
+**Contrato comum:** `generateText`, `generateImage`, `analyzeAudio`, `predictViral`, `classifyConsistency`.
+**Chaves/API:** centralizadas em Settings (por workspace), nunca no cliente.
+
+---
+
+## 10) Critérios de Sucesso (MVP)
+
+* Criar **2 artistas**, configurar DNA/Reality, montar **1 projeto** com **3 cenas**, agendar **5 slots**, publicar via adaptador mock e gerar **relatório**.
+* Consistency Check detecta e corrige ao menos **3** casos comuns.
+* Dashboard carrega < 1,5s (p90) com cache quente.
+* Testes: 70%+ cobertura em services/validators.
+
+---
+
+## 11) Roadmap pós‑MVP (curto)
+
+* Single‑sign‑on; perfis/teams; templates de workflows.
+* Integrações reais (IG/TikTok/YouTube/Spotify).
+* Recomendador de calendário (sazonal + evergreen).
+* Editor de prompt visual (DNA lock, wardrobe, cenários).
+* App mobile (React Native) focado em approvals e calendário.
+
+---
+
+### Anexos (opcional para o builder)
+
+* ERD/diagramas (dbdiagram.io/Excalidraw)
+* Especificações de status machines (XState)
+* Playbook de versionamento de prompts (semântica, diff, fallback)
+
+> **Entrega esperada:** Repositório monorepo com apps `web` e `api`, pacotes compartilhados, migrations, seeds, testes, e deploy Docker. UI funcional cobrindo fluxos descritos; endpoints e jobs operacionais (providers de IA e socials podem iniciar como *stubs*).

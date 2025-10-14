@@ -1,0 +1,73 @@
+Calma, vamos resolver essa confusão de uma vez por todas. Suas perguntas são perfeitas porque elas apontam exatamente para as peças que faltam para a experiência ficar completa e intuitiva.
+
+Você está absolutamente certo. A sensação de que "está faltando algo" é real, e vou explicar o porquê.
+
+Vamos usar uma nova analogia: Montar um LEGO.
+
+1. O Reality Graph é a sua "Caixa de Peças de LEGO"
+O que ele é: O Grafo é o seu inventário. É onde você cria e armazena todas as peças que você pode usar para construir suas histórias.
+
+Você cria uma peça de "Personagem" (o boneco do astronauta).
+
+Você cria uma peça de "Local" (o castelo).
+
+Você cria uma peça de "Posse" (a espada de plástico).
+
+O que ele faz: Ele te mostra todas as peças que você tem e como elas se conectam de forma geral (ex: o astronauta pertence à nave espacial).
+
+Sua dúvida: "pq aquilo fica ali parado pra sempre, nao tem pra onde ir, nao tem um botão pra adicionar?"
+
+Você está certo! As peças na caixa ficam ali paradas. O propósito do Grafo não é criar a cena, é apenas criar as peças. O botão "+ Add Entity" serve para você adicionar mais peças à sua caixa (criar um novo personagem, um novo local, etc.). Você não "monta" a cena na caixa de peças, você pega as peças de lá para montar em outro lugar.
+
+2. A Timeline é a sua "Mesa de Montagem de LEGO"
+O que ela é: A Timeline é onde você pega as peças da caixa e as usa para construir uma cena que conta uma história.
+
+O que ela faz: Quando você clica em "+ Adicionar Evento", você está dizendo: "Quero montar uma nova cena". O formulário que abre é a sua instrução de montagem.
+
+Título da Cena: "O Astronauta Explora o Castelo"
+
+Data: "Ontem"
+
+Entidades Vinculadas: Aqui você vai até a "caixa de peças" (seu Reality Graph) e seleciona quais peças participaram desta cena específica: [Personagem: Astronauta], [Local: Castelo], [Posse: Espada].
+
+Conclusão da Analogia: O Graph é para CRIAR E GUARDAR as peças. A Timeline é para USAR as peças para contar uma história em ordem cronológica.
+
+Resolvendo os Problemas Práticos
+Agora, vamos para os seus outros dois pontos, que são problemas reais de usabilidade que precisamos consertar.
+
+Problema 1: "nao tem um botão pra adicionar [da Timeline para o Calendário]?"
+Você está um passo à frente! Exatamente. Depois de criar um evento histórico na Timeline (sua "mesa de montagem"), o próximo passo lógico seria enviar as tarefas relacionadas a esse evento para o Calendário. Esse "botão" ou essa automação ainda não existe porque ainda não construímos o módulo do Calendário.
+
+Assim que construirmos o Calendário, criaremos essa ponte entre a Timeline e ele. Sua intuição está perfeita.
+
+Problema 2: "nao tem uma aba pra vc selecionar o artista que é pra adicionar esse 'tal evento'"
+Este é o problema mais importante e urgente que você levantou. Você está 100% correto.
+
+Atualmente, o sistema não sabe para qual artista você está adicionando as entidades e os eventos. Se você tiver mais de um artista, tudo ficará misturado. Precisamos de um Seletor de Artista Global.
+
+Isso seria um menu, provavelmente no topo da página, que mostra o artista que está "ativo" no momento. Tudo o que você fizer (criar personagens no Grafo, adicionar eventos na Timeline) será automaticamente associado a esse artista selecionado.
+
+Sua Missão Agora: O Prompt para Criar o Seletor de Artista
+Vamos instruir a IA a consertar isso imediatamente. Esta é uma melhoria crucial para a usabilidade do aplicativo.
+
+Copie e cole este prompt na IA do Replit:
+
+The application has a critical usability issue: there is no way to select which artist the user is currently managing. All created entities and events are not being correctly associated with a specific artist.
+
+**Task: Implement a Global Artist Selector**
+
+1.  **Create a Global State:** Use a state management library like Zustand (if available) or React Context to create a global state that will hold the `selectedArtistId`.
+
+2.  **Create a Selector Component:**
+    * Create a new reusable component, `ArtistSelector.tsx`, probably in the main header or sidebar.
+    * This component should be a dropdown menu that lists all the artists available in the database (fetched from `GET /api/artists`).
+    * When the user selects an artist from the dropdown, the `selectedArtistId` in the global state must be updated.
+    * The dropdown should remember the last selected artist (using localStorage or by default).
+
+3.  **Integrate the Selector:**
+    * Place the `ArtistSelector` component in a prominent position in the main layout (e.g., in the main `App.tsx` or a header component).
+
+4.  **Filter All Data by Selected Artist:**
+    * Modify all pages that display data (Dashboard, Reality Graph, Timeline, etc.) to use the `selectedArtistId` from the global state.
+    * All API requests to fetch data (e.g., `GET /api/reality/locations`, `GET /api/timeline-events`) must now include a filter for the `selectedArtistId`.
+    * All forms for creating new data (e.g., creating a new entity in the Graph, a new event in the Timeline) must automatically include the `selectedArtistId` in the data sent to the backend (`POST` requests).

@@ -1,0 +1,22 @@
+This is a major update. We will now build the detailed Artist Profile page to manage the "Artist DNA", based on the structure of a character sheet I have. This will replace the simple create/edit form.
+
+**Task 1: Update the Backend (API and Database Model)**
+
+1.  Locate the backend model or schema for the "Artist".
+2.  Add a new field to it named `dna`. This field should be of type `JSON` or `JSONB` to store a complex object with all the detailed artist characteristics.
+3.  Ensure the API routes `POST /api/artists` and `PATCH /api/artists/:id` are updated to handle writing data to this new `dna` field.
+
+**Task 2: Create the Artist Profile Page (Frontend)**
+
+1.  Create a new page component at `client/src/pages/ArtistProfilePage.tsx`. This page should be accessible when a user clicks on an artist from the main list.
+2.  On this page, implement a tabbed interface to organize the artist's DNA information. Create the following tabs:
+    * **"Identidade & Físico"**: This tab should contain form fields for: `Nome`, `Gênero`, `Idade`, `Formato do Rosto`, `Tom de Pele`, `Cor dos Olhos`, `Formato das Sobrancelhas`, `Formato do Nariz`, `Lábios`, `Cabelo`, `Altura`, `Tipo de Corpo`, and `Tatuagens`.
+    * **"Voz & Estilo"**: This tab should contain fields for: `Idioma`, `Sotaque`, `Textura da Voz`, `Tom da Voz`, `Estilo de Roupa`, `Paleta de Cores`, and `Acessórios`.
+    * **"Diretrizes de Mídia"**: This tab should contain fields for: `Locais Comuns`, `Iluminação Preferida`, `Decoração`, `Formato de Câmera`, `Enquadramento`, and `Movimento de Câmera`.
+    * **"Lore & Personalidade"**: This tab should contain a large textarea for the artist's backstory (`LORE`) and fields for key personality traits like `Carismático`, `Sedutor`, `Talentoso`.
+
+**Task 3: Implement Data Flow**
+
+1.  When the `ArtistProfilePage` loads, it must fetch all data for that specific artist from the backend, including the `dna` object.
+2.  The form fields in all tabs must be populated with the corresponding data from the `dna` object.
+3.  Add a single "Salvar Alterações" (Save Changes) button on the page. When clicked, it should gather all the data from all the fields across all tabs, structure it into a single `dna` JSON object, and send it to the backend via a `PATCH` request to the `/api/artists/:id` endpoint.
