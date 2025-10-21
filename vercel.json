@@ -4,11 +4,13 @@
     {
       "src": "client/index.html",
       "use": "@vercel/static-build",
-      "config": { "distDir": "client/dist" }
+      "config": { "distDir": "dist" },
+      "rootDirectory": "client"
     },
     {
       "src": "server/index.ts",
-      "use": "@vercel/node"
+      "use": "@vercel/node",
+      "rootDirectory": "server"
     }
   ],
   "routes": [
